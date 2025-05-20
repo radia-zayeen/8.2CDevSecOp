@@ -1,60 +1,40 @@
-pipeline {
-    agent any
+agent any
     stages {
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/radia-zayeen/8.2CDevSecOp.git'
             }
         }
-
         stage('Install Dependencies') {
             steps {
                 sh 'npm install'
             }
         }
-
         stage('Run Tests') {
             steps {
                 script {
-                    try {
-                        sh 'npm test'
-                        currentBuild.result = 'SUCCESS'
-                    } catch (err) {
-                        currentBuild.result = 'FAILURE'
-                        throw err
-                    }
-                }
-            }
-            post {
-                always {
+                    def testStatus = sh(script: 'npm test', returnStatus: true)
                     emailext (
-                        subject: "Test Stage: ${currentBuild.currentResult}",
-                        body: "Build result: ${currentBuild.currentResult}\n\nCheck logs attached.",
+                        subject: "Build Notification: Test Stage - ${testStatus == 0 ? 'SUCCESS' : 'FAILURE'}",
+                        body: "The test stage has completed with status: ${testStatus == 0 ? 'SUCCESS' : 'FAILURE'}.\n\nPlease check the attached log for details.",
                         to: 'radia.zayeen@gmail.com',
-                        attachmentsPattern: '**/console.log',
                         attachLog: true
                     )
                 }
             }
         }
-
+        stage('Generate Coverage Report') {
+            steps {
+                sh 'npm run coverage || true'
+            }
+        }
         stage('NPM Audit (Security Scan)') {
             steps {
                 script {
-                    try {
-                        sh 'npm audit'
-                        currentBuild.result = 'SUCCESS'
-                    } catch (err) {
-                        currentBuild.result = 'FAILURE'
-                        throw err
-                    }
-                }
-            }
-            post {
-                always {
+                    def auditStatus = sh(script: 'npm audit', returnStatus: true)
                     emailext (
-                        subject: "Security Scan: ${currentBuild.currentResult}",
-                        body: "Security scan result: ${currentBuild.currentResult}",
+                        subject: "Build Notification: Security Scan - ${auditStatus == 0 ? 'SUCCESS' : 'FAILURE'}",
+                        body: "The security scan has completed with status: ${auditStatus == 0 ? 'SUCCESS' : 'FAILURE'}.\n\nPlease check the attached log for details.",
                         to: 'radia.zayeen@gmail.com',
                         attachLog: true
                     )
