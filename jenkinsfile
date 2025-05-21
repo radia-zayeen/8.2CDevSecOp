@@ -18,7 +18,7 @@ pipeline {
                     emailext (
                         subject: "Build Notification: Test Stage - ${testStatus == 0 ? 'SUCCESS' : 'FAILURE'}",
                         body: "The test stage has completed with status: ${testStatus == 0 ? 'SUCCESS' : 'FAILURE'}.\n\nPlease check the attached log for details.",
-                        to: 'rad’ia.zayeen@gmail.com,
+                        to: 'radia.zayeen@gmail.com,
                         attachLog: true
                     )
                 }
@@ -36,7 +36,7 @@ pipeline {
                     emailext (
                         subject: "Build Notification: Security Scan - ${auditStatus == 0 ? 'SUCCESS' : 'FAILURE'}",
                         body: "The security scan has completed with status: ${auditStatus == 0 ? 'SUCCESS' : 'FAILURE'}.\n\nPlease check the attached log for details.",
-                        to: 'ra’dia.zayeen@gmail.com,
+                        to: 'radia.zayeen@gmail.com,
                         attachLog: true
                     )
                 }
