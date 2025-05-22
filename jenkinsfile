@@ -20,16 +20,26 @@ pipeline {
 
         stage("Run Tests") {
             steps {
-                script {
-                    def testStatus = sh(script: 'npm test', returnStatus: true)
-                    emailext(
-                        to: "${env.RECIPIENT}",
-                        subject: "Build Notification: Test Stage - ${testStatus == 0 ? 'SUCCESS' : 'FAILURE'}",
-                        body: "The test stage has completed with status: ${testStatus == 0 ? 'SUCCESS' : 'FAILURE'}.\n\nCheck attached log for details.",
-                        attachLog: true
-                    )
-                    if (testStatus != 0) {
-                        currentBuild.result = 'UNSTABLE'
+                sh 'npm test | tee test.log'
+            }
+            post {
+                always {
+                    script {
+                        def testFailed = sh(script: "grep -q 'failing' test.log", returnStatus: true) == 0
+                        def subject = testFailed ? "❌ Build Notification: Test Stage - FAILURE" : "✅ Build Notification: Test Stage - SUCCESS"
+                        def body = testFailed ? "❌ The test stage failed. See attached log." : "✅ The test stage passed. See attached log."
+
+                        emailext(
+                            to: RECIPIENT,
+                            subject: subject,
+                            body: body,
+                            attachmentsPattern: 'test.log',
+                            attachLog: true
+                        )
+
+                        if (testFailed) {
+                            error("Tests failed")
+                        }
                     }
                 }
             }
@@ -43,46 +53,29 @@ pipeline {
 
         stage("NPM Audit (Security Scan)") {
             steps {
-                script {
-                    def auditStatus = sh(script: 'npm audit', returnStatus: true)
-                    emailext(
-                        to: "${env.RECIPIENT}",
-                        subject: "Build Notification: Security Scan - ${auditStatus == 0 ? 'SUCCESS' : 'FAILURE'}",
-                        body: "Security scan completed with status: ${auditStatus == 0 ? 'SUCCESS' : 'FAILURE'}.\n\nCheck attached log for details.",
-                        attachLog: true
-                    )
-                    if (auditStatus != 0) {
-                        currentBuild.result = 'UNSTABLE'
+                sh 'npm audit | tee audit.log'
+            }
+            post {
+                always {
+                    script {
+                        def issuesFound = sh(script: "grep -q 'found' audit.log", returnStatus: true) == 0
+                        def subject = issuesFound ? "❌ Build Notification: Security Scan - FAILURE" : "✅ Build Notification: Security Scan - SUCCESS"
+                        def body = issuesFound ? "❌ Security issues were found. See attached audit log." : "✅ Security scan passed."
+
+                        emailext(
+                            to: RECIPIENT,
+                            subject: subject,
+                            body: body,
+                            attachmentsPattern: 'audit.log',
+                            attachLog: true
+                        )
+
+                        if (issuesFound) {
+                            error("Security scan failed")
+                        }
                     }
                 }
             }
-        }
-    }
-
-    post {
-        success {
-            emailext(
-                to: "${env.RECIPIENT}",
-                subject: "Pipeline Completed - SUCCESS",
-                body: "The pipeline completed successfully.",
-                attachLog: true
-            )
-        }
-        unstable {
-            emailext(
-                to: "${env.RECIPIENT}",
-                subject: "Pipeline Completed - UNSTABLE",
-                body: "The pipeline completed, but one or more stages reported issues.\n\nCheck the attached log.",
-                attachLog: true
-            )
-        }
-        failure {
-            emailext(
-                to: "${env.RECIPIENT}",
-                subject: "Pipeline Completed - FAILURE",
-                body: "The pipeline failed. Please check Jenkins logs for details.",
-                attachLog: true
-            )
         }
     }
 }
