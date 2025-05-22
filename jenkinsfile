@@ -8,37 +8,44 @@ pipeline {
     stages {
         stage("Checkout") {
             steps {
+                // Tool: Git
                 git branch: 'main', url: 'https://github.com/radia-zayeen/8.2CDevSecOp.git'
             }
         }
 
         stage("Install Dependencies") {
             steps {
+                // Tool: npm (Node.js package manager)
                 sh 'npm install'
             }
         }
 
         stage("Run Tests") {
             steps {
+                // Tool: Mocha/Jest (via npm test)
                 sh 'npm test | tee test.log'
             }
             post {
                 always {
                     script {
-                        def testFailed = sh(script: "grep -q 'failing' test.log", returnStatus: true) == 0
-                        def subject = testFailed ? "❌ Build Notification: Test Stage - FAILURE" : "✅ Build Notification: Test Stage - SUCCESS"
-                        def body = testFailed ? "❌ The test stage failed. See attached log." : "✅ The test stage passed. See attached log."
-
-                        emailext(
-                            to: RECIPIENT,
-                            subject: subject,
-                            body: body,
-                            attachmentsPattern: 'test.log',
-                            attachLog: true
-                        )
-
-                        if (testFailed) {
-                            error("Tests failed")
+                        def testStatus = sh(script: 'grep -q "failing" test.log', returnStatus: true)
+                        if (testStatus == 0) {
+                            emailext(
+                                to: "${RECIPIENT}",
+                                subject: "🔴 Build Notification: Test Stage - FAILURE",
+                                body: "❌ The test stage failed. Please see the attached log.",
+                                attachmentsPattern: 'test.log',
+                                attachLog: true
+                            )
+                            error("Tests failed.")
+                        } else {
+                            emailext(
+                                to: "${RECIPIENT}",
+                                subject: "🟢 Build Notification: Test Stage - SUCCESS",
+                                body: "✅ The test stage completed successfully. Log attached.",
+                                attachmentsPattern: 'test.log',
+                                attachLog: true
+                            )
                         }
                     }
                 }
@@ -47,31 +54,37 @@ pipeline {
 
         stage("Generate Coverage Report") {
             steps {
+                // Tool: Coverage tool (e.g., nyc)
                 sh 'npm run coverage || true'
             }
         }
 
         stage("NPM Audit (Security Scan)") {
             steps {
+                // Tool: npm audit
                 sh 'npm audit | tee audit.log'
             }
             post {
                 always {
                     script {
-                        def issuesFound = sh(script: "grep -q 'found' audit.log", returnStatus: true) == 0
-                        def subject = issuesFound ? "❌ Build Notification: Security Scan - FAILURE" : "✅ Build Notification: Security Scan - SUCCESS"
-                        def body = issuesFound ? "❌ Security issues were found. See attached audit log." : "✅ Security scan passed."
-
-                        emailext(
-                            to: RECIPIENT,
-                            subject: subject,
-                            body: body,
-                            attachmentsPattern: 'audit.log',
-                            attachLog: true
-                        )
-
-                        if (issuesFound) {
-                            error("Security scan failed")
+                        def auditStatus = sh(script: 'grep -q "found" audit.log', returnStatus: true)
+                        if (auditStatus == 0) {
+                            emailext(
+                                to: "${RECIPIENT}",
+                                subject: "🔴 Build Notification: Security Scan - FAILURE",
+                                body: "❌ Security issues were found. See audit log attached.",
+                                attachmentsPattern: 'audit.log',
+                                attachLog: true
+                            )
+                            error("Security scan failed.")
+                        } else {
+                            emailext(
+                                to: "${RECIPIENT}",
+                                subject: "🟢 Build Notification: Security Scan - SUCCESS",
+                                body: "✅ Security scan passed with no issues. Audit log attached.",
+                                attachmentsPattern: 'audit.log',
+                                attachLog: true
+                            )
                         }
                     }
                 }
@@ -79,4 +92,3 @@ pipeline {
         }
     }
 }
-
