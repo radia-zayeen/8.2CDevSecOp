@@ -1,58 +1,68 @@
 pipeline {
     agent any
+
     environment {
-        SONAR_TOKEN = credentials('SONAR_TOKEN')
+        SONAR_TOKEN = credentials('SONAR_TOKEN') // Make sure this is configured in Jenkins credentials
     }
+
     stages {
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/radia-zayeen/8.2CDevSecOp.git'
             }
         }
+
         stage('Install Dependencies') {
             steps {
                 sh 'npm install'
             }
         }
+
         stage('Run Tests') {
             steps {
-                sh 'npm test || true'
+                sh 'npm test || true' // Allows pipeline to continue despite test failures
             }
         }
+
         stage('Generate Coverage Report') {
             steps {
-                sh 'npm run coverage || true'
+                sh 'npm run coverage || true' // Generates lcov.info for Sonar
             }
         }
+
         stage('NPM Audit (Security Scan)') {
             steps {
-                sh 'npm audit || true'
+                sh 'npm audit || true' // Shows known CVEs in the output
             }
         }
+
         stage('SonarCloud Analysis') {
             steps {
-                withEnv(["SONAR_TOKEN=${env.SONAR_TOKEN}"]) {
-                    sh '''
-                        node -e "
-                            const scanner = require('sonarqube-scanner');
-                            scanner(
-                              {
-                                serverUrl: 'https://sonarcloud.io',
-                                token: process.env.SONAR_TOKEN,
-                                options: {
-                                  'sonar.projectKey': 'radia-zayeen_8.2CDevSecOp',
-                                  'sonar.organization': 'radia-zayeen',
-                                  'sonar.sources': '.',
-                                  'sonar.exclusions': 'node_modules/**,test/**',
-                                  'sonar.javascript.lcov.reportPaths': 'coverage/lcov.info',
-                                  'sonar.projectName': 'NodeJS Goof Vulnerable App',
-                                  'sonar.sourceEncoding': 'UTF-8'
-                                }
-                              },
-                              () => process.exit()
-                            );
-                        "
-                    '''
+                // Ensure the scanner is run from project root
+                dir('') {
+                    withEnv(["SONAR_TOKEN=${env.SONAR_TOKEN}"]) {
+                        sh '''
+                            node -e "
+                                const scanner = require('sonarqube-scanner');
+                                scanner(
+                                  {
+                                    serverUrl: 'https://sonarcloud.io',
+                                    token: process.env.SONAR_TOKEN,
+                                    options: {
+                                      'sonar.projectKey': 'radia-zayeen_8.2CDevSecOp',
+                                      'sonar.organization': 'radia-zayeen',
+                                      'sonar.sources': '.',
+                                      'sonar.exclusions': 'node_modules/**,test/**',
+                                      'sonar.javascript.lcov.reportPaths': 'coverage/lcov.info',
+                                      'sonar.projectName': 'NodeJS Goof Vulnerable App',
+                                      'sonar.sourceEncoding': 'UTF-8'
+                                    }
+                                  },
+                                  () => process.exit()
+                                );
+                            "
+                        '''
+                    }
                 }
             }
         }
