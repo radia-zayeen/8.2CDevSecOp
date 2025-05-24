@@ -33,13 +33,25 @@ pipeline {
             steps {
                 withEnv(["SONAR_TOKEN=${env.SONAR_TOKEN}"]) {
                     sh '''
-                        # Download SonarScanner CLI
-                        curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
-                        unzip -o sonar-scanner.zip
-                        export PATH=$PWD/sonar-scanner-5.0.1.3006-linux/bin:$PATH
-                        
-                        # Run SonarScanner
-                        sonar-scanner
+                        node -e "
+                            const scanner = require('sonarqube-scanner');
+                            scanner(
+                              {
+                                serverUrl: 'https://sonarcloud.io',
+                                token: process.env.SONAR_TOKEN,
+                                options: {
+                                  'sonar.projectKey': 'radia-zayeen_8.2CDevSecOp',
+                                  'sonar.organization': radia-zayeen',
+                                  'sonar.sources': '.',
+                                  'sonar.exclusions': 'node_modules/**,test/**',
+                                  'sonar.javascript.lcov.reportPaths': 'coverage/lcov.info',
+                                  'sonar.projectName': 'NodeJS Goof Vulnerable App',
+                                  'sonar.sourceEncoding': 'UTF-8'
+                                }
+                              },
+                              () => process.exit()
+                            );
+                        "
                     '''
                 }
             }
