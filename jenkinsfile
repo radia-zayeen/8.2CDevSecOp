@@ -40,16 +40,16 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
                     sh '''
-                        echo "Downloading SonarScanner CLI for macOS..."
-                        curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-macosx.zip
+                        echo "Downloading SonarScanner CLI (no JRE)..."
+                        curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006.zip
 
                         echo "Extracting SonarScanner CLI..."
                         unzip -o sonar-scanner.zip
 
-                        echo "Running SonarScanner..."
-                        ./sonar-scanner-5.0.1.3006-macosx/bin/sonar-scanner \
+                        echo "Running SonarScanner with system Java..."
+                        ./sonar-scanner-5.0.1.3006/bin/sonar-scanner \
                             -Dsonar.login=$SONAR_TOKEN
-                        '''
+                    '''
                 }
             }
         }
