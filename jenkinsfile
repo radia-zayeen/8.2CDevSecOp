@@ -40,7 +40,7 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
                     sh '''
-                        echo "Downloading SonarScanner CLI (no JRE)..."
+                        echo "Downloading SonarScanner CLI for Linux..."
                         curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006.zip
 
                         echo "Extracting SonarScanner CLI..."
