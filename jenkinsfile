@@ -41,7 +41,7 @@ pipeline {
                                 token: process.env.SONAR_TOKEN,
                                 options: {
                                   'sonar.projectKey': 'radia-zayeen_8.2CDevSecOp',
-                                  'sonar.organization': radia-zayeen',
+                                  'sonar.organization': 'radia-zayeen',
                                   'sonar.sources': '.',
                                   'sonar.exclusions': 'node_modules/**,test/**',
                                   'sonar.javascript.lcov.reportPaths': 'coverage/lcov.info',
