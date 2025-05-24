@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        SONAR_TOKEN = credentials('SONAR_TOKEN')  
-    }
-
     stages {
         stage('Checkout') {
             steps {
@@ -40,19 +36,21 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
                     sh '''
-                        echo "Setting JAVA_HOME to Java 17..."
-                        export JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-arm64
-                        export PATH=$JAVA_HOME/bin:$PATH
-
-                        echo "Downloading SonarScanner CLI..."
-                        curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006.zip
-
-                        echo "Extracting SonarScanner..."
+                        curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-macosx.zip
                         unzip -o sonar-scanner.zip
+                        ./sonar-scanner-4.8.0.2856-macosx/bin/sonar-scanner -Dsonar.login=$SONAR_TOKEN
 
-                        echo "Running SonarScanner with Java 17..."
-                        ./sonar-scanner-5.0.1.3006/bin/sonar-scanner \
-                            -Dsonar.login=$SONAR_TOKEN
+                        # Run the SonarScanner
+                        sonar-scanner \
+                          -Dsonar.projectKey=radia-zayeen_8.2CDevSecOp \
+                          -Dsonar.organization=radia-zayeen \
+                          -Dsonar.host.url=https://sonarcloud.io \
+                          -Dsonar.login=$SONAR_TOKEN \
+                          -Dsonar.sources=. \
+                          -Dsonar.exclusions=node_modules/**,test/** \
+                          -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+                          -Dsonar.projectName="NodeJS Goof Vulnerable App" \
+                          -Dsonar.sourceEncoding=UTF-8
                     '''
                 }
             }
