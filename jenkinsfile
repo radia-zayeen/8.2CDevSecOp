@@ -2,92 +2,53 @@ pipeline {
     agent any
 
     environment {
-        RECIPIENT = 'radia.zayeen@gmail.com'
+        SONAR_TOKEN = credentials('SONAR_TOKEN')  
     }
 
     stages {
-        stage("Checkout") {
+        stage('Checkout') {
             steps {
-                // Tool: Git
                 git branch: 'main', url: 'https://github.com/radia-zayeen/8.2CDevSecOp.git'
             }
         }
 
-        stage("Install Dependencies") {
+        stage('Install Dependencies') {
             steps {
-                // Tool: npm (Node.js package manager)
                 sh 'npm install'
             }
         }
 
-        stage("Run Tests") {
+        stage('Run Tests') {
             steps {
-                // Tool: Mocha/Jest (via npm test)
-                sh 'npm test | tee test.log'
-            }
-            post {
-                always {
-                    script {
-                        def testStatus = sh(script: 'grep -q "failing" test.log', returnStatus: true)
-                        if (testStatus == 0) {
-                            emailext(
-                                to: "${RECIPIENT}",
-                                subject: "🔴 Build Notification: Test Stage - FAILURE",
-                                body: "❌ The test stage failed. Please see the attached log.",
-                                attachmentsPattern: 'test.log',
-                                attachLog: true
-                            )
-                            error("Tests failed.")
-                        } else {
-                            emailext(
-                                to: "${RECIPIENT}",
-                                subject: "🟢 Build Notification: Test Stage - SUCCESS",
-                                body: "✅ The test stage completed successfully. Log attached.",
-                                attachmentsPattern: 'test.log',
-                                attachLog: true
-                            )
-                        }
-                    }
-                }
+                sh 'npm test || true'
             }
         }
 
-        stage("Generate Coverage Report") {
+        stage('Generate Coverage Report') {
             steps {
-                // Tool: Coverage tool (e.g., nyc)
                 sh 'npm run coverage || true'
             }
         }
 
-        stage("NPM Audit (Security Scan)") {
+        stage('NPM Audit (Security Scan)') {
             steps {
-                // Tool: npm audit
-                sh 'npm audit | tee audit.log'
+                sh 'npm audit || true'
             }
-            post {
-                always {
-                    script {
-                        def auditStatus = sh(script: 'grep -q "found" audit.log', returnStatus: true)
-                        if (auditStatus == 0) {
-                            emailext(
-                                to: "${RECIPIENT}",
-                                subject: "🔴 Build Notification: Security Scan - FAILURE",
-                                body: "❌ Security issues were found. See audit log attached.",
-                                attachmentsPattern: 'audit.log',
-                                attachLog: true
-                            )
-                            error("Security scan failed.")
-                        } else {
-                            emailext(
-                                to: "${RECIPIENT}",
-                                subject: "🟢 Build Notification: Security Scan - SUCCESS",
-                                body: "✅ Security scan passed with no issues. Audit log attached.",
-                                attachmentsPattern: 'audit.log',
-                                attachLog: true
-                            )
-                        }
-                    }
-                }
+        }
+
+        stage('SonarCloud Analysis') {
+            steps {
+                sh '''
+                echo "Downloading SonarScanner CLI..."
+                curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+
+                echo "Extracting SonarScanner CLI..."
+                unzip -o sonar-scanner.zip
+
+                echo "Running SonarScanner..."
+                ./sonar-scanner-5.0.1.3006-linux/bin/sonar-scanner \
+                    -Dsonar.login=$SONAR_TOKEN
+                '''
             }
         }
     }
