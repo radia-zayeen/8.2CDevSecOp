@@ -38,17 +38,19 @@ pipeline {
 
         stage('SonarCloud Analysis') {
             steps {
-                sh '''
-                echo "Downloading SonarScanner CLI..."
-                curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+                withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
+                    sh '''
+                        echo "Downloading SonarScanner CLI for macOS..."
+                        curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-macosx.zip
 
-                echo "Extracting SonarScanner CLI..."
-                unzip -o sonar-scanner.zip
+                        echo "Extracting SonarScanner CLI..."
+                        unzip -o sonar-scanner.zip
 
-                echo "Running SonarScanner..."
-                ./sonar-scanner-5.0.1.3006-linux/bin/sonar-scanner \
-                    -Dsonar.login=$SONAR_TOKEN
-                '''
+                        echo "Running SonarScanner..."
+                        ./sonar-scanner-5.0.1.3006-macosx/bin/sonar-scanner \
+                            -Dsonar.login=$SONAR_TOKEN
+                        '''
+                }
             }
         }
     }
