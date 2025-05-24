@@ -39,16 +39,17 @@ pipeline {
         stage('SonarCloud Analysis') {
             steps {
                 sh '''
-                    # Download SonarScanner CLI macOS version
+                    # Download and extract macOS SonarScanner
                     curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-macosx.zip
-
-                    # Unzip with overwrite
                     unzip -o sonar-scanner.zip
 
-                    # Give executable permission (just in case)
+                    # Remove the bundled JRE to force use of system Java
+                    rm -rf sonar-scanner-4.8.0.2856-macosx/jre
+
+                    # Ensure the scanner binary is executable
                     chmod +x sonar-scanner-4.8.0.2856-macosx/bin/sonar-scanner
 
-                    # Run the SonarScanner CLI
+                    # Run SonarScanner CLI
                     ./sonar-scanner-4.8.0.2856-macosx/bin/sonar-scanner \
                       -Dsonar.projectKey=radia-zayeen_8.2CDevSecOp \
                       -Dsonar.organization=radia-zayeen \
@@ -64,5 +65,3 @@ pipeline {
         }
     }
 }
-
-
