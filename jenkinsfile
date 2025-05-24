@@ -1,71 +1,48 @@
 pipeline {
     agent any
-
     environment {
         SONAR_TOKEN = credentials('SONAR_TOKEN')
     }
-
     stages {
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/radia-zayeen/8.2CDevSecOp.git'
             }
         }
-
         stage('Install Dependencies') {
             steps {
                 sh 'npm install'
             }
         }
-
         stage('Run Tests') {
             steps {
                 sh 'npm test || true'
             }
         }
-
         stage('Generate Coverage Report') {
             steps {
                 sh 'npm run coverage || true'
             }
         }
-
         stage('NPM Audit (Security Scan)') {
             steps {
                 sh 'npm audit || true'
             }
         }
-
         stage('SonarCloud Analysis') {
             steps {
-                withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
+                withEnv(["SONAR_TOKEN=${env.SONAR_TOKEN}"]) {
                     sh '''
-                        # Set JAVA_HOME and ensure Java is in PATH
-                        export JAVA_HOME=$(/usr/libexec/java_home)
-                        export PATH=$JAVA_HOME/bin:$PATH
-                        java -version
-
-                        # Download SonarScanner for macOS and remove bundled JRE
-                        curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-macosx.zip
+                        # Download SonarScanner CLI
+                        curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
                         unzip -o sonar-scanner.zip
-                        rm -rf sonar-scanner-4.8.0.2856-macosx/jre
-                        chmod +x sonar-scanner-4.8.0.2856-macosx/bin/sonar-scanner
-
-                        # Run the SonarScanner CLI
-                        ./sonar-scanner-4.8.0.2856-macosx/bin/sonar-scanner \
-                          -Dsonar.projectKey=radia-zayeen_8.2CDevSecOp \
-                          -Dsonar.organization=radia-zayeen \
-                          -Dsonar.host.url=https://sonarcloud.io \
-                          -Dsonar.login=$SONAR_TOKEN \
-                          -Dsonar.sources=. \
-                          -Dsonar.exclusions=node_modules/**,test/** \
-                          -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-                          -Dsonar.projectName="NodeJS Goof Vulnerable App" \
-                          -Dsonar.sourceEncoding=UTF-8
+                        export PATH=$PWD/sonar-scanner-5.0.1.3006-linux/bin:$PATH
+                        
+                        # Run SonarScanner
+                        sonar-scanner
                     '''
                 }
             }
         }
     }
 }
-
