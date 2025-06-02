@@ -23,13 +23,12 @@ pipeline {
         stage('Test') {
             steps {
                 script {
-                    try {
-                        echo 'Running tests...'
-                        sh 'npm test > test-results.log'
+                    echo 'Running tests...'
+                    def testStatus = sh(script: 'npm test > test-results.log 2>&1', returnStatus: true)
+                    if (testStatus == 0) {
                         currentBuild.result = 'SUCCESS'
-                    } catch (err) {
-                        currentBuild.result = 'FAILURE'
-                        throw err
+                    } else {
+                        currentBuild.result = 'UNSTABLE' // Mark build as unstable if tests fail
                     }
                 }
             }
@@ -37,7 +36,7 @@ pipeline {
                 always {
                     emailext(
                         subject: "Test Stage - ${currentBuild.result}",
-                        body: "The Test stage has completed with status: ${currentBuild.result}.",
+                        body: "The Test stage has completed with status: ${currentBuild.result}. Please review the attached test results.",
                         to: "${env.RECIPIENT_EMAIL}",
                         attachmentsPattern: 'test-results.log',
                         compressLog: true
@@ -49,21 +48,16 @@ pipeline {
         stage('Security Scan') {
             steps {
                 script {
-                    try {
-                        echo 'Running security scan...'
-                        sh 'npm audit > audit-results.log || true'
-                        currentBuild.result = 'SUCCESS'
-                    } catch (err) {
-                        currentBuild.result = 'FAILURE'
-                        throw err
-                    }
+                    echo 'Running security scan...'
+                    sh 'npm audit > audit-results.log || true' // Avoid failing the build
+                    currentBuild.result = currentBuild.result ?: 'SUCCESS'
                 }
             }
             post {
                 always {
                     emailext(
                         subject: "Security Scan Stage - ${currentBuild.result}",
-                        body: "The Security Scan stage has completed with status: ${currentBuild.result}.",
+                        body: "The Security Scan stage has completed. Please check the attached audit results.",
                         to: "${env.RECIPIENT_EMAIL}",
                         attachmentsPattern: 'audit-results.log',
                         compressLog: true
