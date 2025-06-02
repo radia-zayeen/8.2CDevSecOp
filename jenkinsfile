@@ -5,12 +5,11 @@ pipeline {
         RECIPIENT_EMAIL = 'radia.zayeen@gmail.com'
     }
 
-
     stages {
         stage('Checkout') {
             steps {
                 echo 'Checking out source code...'
-                git 'https://github.com/radia-zayeen/8.2CDevSecOp.git'
+                git branch: 'main', url: 'https://github.com/radia-zayeen/8.2CDevSecOp.git'
             }
         }
 
@@ -26,7 +25,7 @@ pipeline {
                 script {
                     try {
                         echo 'Running tests...'
-                        sh 'npm test'  // Example test command
+                        sh 'npm test > test-results.log'
                         currentBuild.result = 'SUCCESS'
                     } catch (err) {
                         currentBuild.result = 'FAILURE'
@@ -40,7 +39,7 @@ pipeline {
                         subject: "Test Stage - ${currentBuild.result}",
                         body: "The Test stage has completed with status: ${currentBuild.result}.",
                         to: "${env.RECIPIENT_EMAIL}",
-                        attachmentsPattern: '**/test-results.log',
+                        attachmentsPattern: 'test-results.log',
                         compressLog: true
                     )
                 }
@@ -51,7 +50,7 @@ pipeline {
             steps {
                 script {
                     try {
-                        echo 'Running security scan (e.g., using npm audit)...'
+                        echo 'Running security scan...'
                         sh 'npm audit > audit-results.log || true'
                         currentBuild.result = 'SUCCESS'
                     } catch (err) {
@@ -75,7 +74,7 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                echo 'Deployment step - tool recommendation: Ansible, Docker, or Kubernetes'
+                echo 'Deployment stage executed.'
             }
         }
     }
