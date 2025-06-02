@@ -5,8 +5,12 @@ pipeline {
         RECIPIENT_EMAIL = 'radia.zayeen@gmail.com'
     }
 
-    stages {
+    tools {
+        
+        nodejs 'NodeJS 18' 
+    }
 
+    stages {
         stage('Checkout') {
             steps {
                 echo 'Checking out source code...'
@@ -14,73 +18,75 @@ pipeline {
             }
         }
 
-
-        stage("Build") {
+        stage('Build') {
             steps {
-                echo "Building..."
+                echo 'Building the application...'
+                sh 'npm install'
             }
         }
 
         stage('Test') {
-        steps {
-            script {
-                try {
-                    echo 'Running tests...'
-                
-                    currentBuild.result = 'SUCCESS'
-                } catch (e) {
-                    currentBuild.result = 'FAILURE'
-                    throw e
-                }
-            }
-        }
-        post {
-            always {
-                emailext (
-                    to: 'radia.zayeen@gmail.com',
-                    subject: "Build Test Stage: ${currentBuild.result}",
-                    body: """Test stage completed with status: ${currentBuild.result}
-                    
-                    Please check the attached logs.""",
-                    attachmentsPattern: '**/test-output/*.log',
-                    attachLog: true
-                )
-            }
-        }
-    }
-
-    stage('Security Scan') {
-        steps {
-            script {
-                try {
-                    echo 'Running security scan...'
-                    
-                    currentBuild.result = 'SUCCESS'
-                } catch (e) {
-                    currentBuild.result = 'FAILURE'
-                    throw e
-                }
-            }
-        }
-        post {
-            always {
-                emailext (
-                    to: 'radia.zayeen@gmail.com',
-                    subject: "Security Scan Stage: ${currentBuild.result}",
-                    body: """Security scan stage completed with status: ${currentBuild.result}
-
-                    Please find the logs attached.""",
-                    attachmentsPattern: '**/security-scan/*.log',
-                    attachLog: true
-                )
-            }
-        }
-    }
-
-        stage("Deploy") {
             steps {
-                echo "Deploying..."
+                script {
+                    try {
+                        echo 'Running tests...'
+                        sh 'npm test'  // Example test command
+                        currentBuild.result = 'SUCCESS'
+                    } catch (err) {
+                        currentBuild.result = 'FAILURE'
+                        throw err
+                    }
+                }
             }
+            post {
+                always {
+                    emailext(
+                        subject: "Test Stage - ${currentBuild.result}",
+                        body: "The Test stage has completed with status: ${currentBuild.result}.",
+                        to: "${env.RECIPIENT_EMAIL}",
+                        attachmentsPattern: '**/test-results.log',
+                        compressLog: true
+                    )
+                }
+            }
+        }
+
+        stage('Security Scan') {
+            steps {
+                script {
+                    try {
+                        echo 'Running security scan (e.g., using npm audit)...'
+                        sh 'npm audit > audit-results.log || true'
+                        currentBuild.result = 'SUCCESS'
+                    } catch (err) {
+                        currentBuild.result = 'FAILURE'
+                        throw err
+                    }
+                }
+            }
+            post {
+                always {
+                    emailext(
+                        subject: "Security Scan Stage - ${currentBuild.result}",
+                        body: "The Security Scan stage has completed with status: ${currentBuild.result}.",
+                        to: "${env.RECIPIENT_EMAIL}",
+                        attachmentsPattern: 'audit-results.log',
+                        compressLog: true
+                    )
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deployment step - tool recommendation: Ansible, Docker, or Kubernetes'
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline completed.'
         }
     }
 }
