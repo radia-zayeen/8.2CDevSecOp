@@ -26,14 +26,14 @@ pipeline {
                     sh 'npm test > test-results.log 2>&1 || true'
                 }
             }
+            
             post {
                 always {
                     emailext(
                         subject: "Test Stage - ${currentBuild.result ?: 'SUCCESS'}",
-                        body: "Test stage completed. See attached test results.",
-                        to: "${env.RECIPIENT_EMAIL}",
-                        attachmentsPattern: 'test-results.log',
-                        compressLog: true
+                        body: "Test stage completed successfully. Log file not attached for testing.",
+                        to: "${env.RECIPIENT_EMAIL}"
+        
                     )
                 }
             }
