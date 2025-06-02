@@ -1,14 +1,74 @@
 pipeline {
-  agent any
-  stages {
-    stage('Email Test') {
-      steps {
-        emailext(
-          subject: "Test Email from emailext",
-          body: "This is a test email sent using the Email Extension Plugin.",
-          to: 'radia.zayeen@gmail.com'
-        )
-      }
+    agent any
+    environment {
+        RECIPIENT_EMAIL = 'radia.zayeen@gmail.com'
     }
-  }
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Checking out source code...'
+                git url: 'https://github.com/radia-zayeen/8.2CDevSecOp.git', branch: 'main'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo 'Building the application...'
+                sh 'npm install'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                script {
+                    echo 'Running tests...'
+                    // Save test results to a file even if tests fail
+                    sh 'npm test > test-results.log 2>&1 || true'
+                }
+            }
+            post {
+                always {
+                    emailext(
+                        subject: "Test Stage - ${currentBuild.result ?: 'SUCCESS'}",
+                        body: "Test stage completed. See attached test results.",
+                        to: "${env.RECIPIENT_EMAIL}",
+                        attachmentsPattern: 'test-results.log',
+                        compressLog: true
+                    )
+                }
+            }
+        }
+
+        stage('Security Scan') {
+            steps {
+                script {
+                    echo 'Running security scan...'
+                    sh 'npm audit > audit-results.log 2>&1 || true'
+                }
+            }
+            post {
+                always {
+                    emailext(
+                        subject: "Security Scan Stage - ${currentBuild.result ?: 'SUCCESS'}",
+                        body: "Security scan completed. See attached audit report.",
+                        to: "${env.RECIPIENT_EMAIL}",
+                        attachmentsPattern: 'audit-results.log',
+                        compressLog: true
+                    )
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deployment stage executed.'
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline completed.'
+        }
+    }
 }
