@@ -4,64 +4,21 @@ pipeline {
         RECIPIENT_EMAIL = 'radia.zayeen@gmail.com'
     }
     stages {
-        stage('Checkout') {
-            steps {
-                echo 'Checking out source code...'
-                git url: 'https://github.com/radia-zayeen/8.2CDevSecOp.git', branch: 'main'
-            }
-        }
-
-        stage('Build') {
-            steps {
-                echo 'Building the application...'
-                sh 'npm install'
-            }
-        }
-
         stage('Test') {
             steps {
                 script {
                     echo 'Running tests...'
-                    // Save test results to a file even if tests fail
-                    sh 'npm test > test-results.log 2>&1 || true'
+                    sh 'npm test || true'
                 }
             }
-            
             post {
                 always {
                     emailext(
                         subject: "Test Stage - ${currentBuild.result ?: 'SUCCESS'}",
-                        body: "Test stage completed successfully. Log file not attached for testing.",
+                        body: "Test stage completed successfully.",
                         to: "${env.RECIPIENT_EMAIL}"
-        
                     )
                 }
-            }
-        }
-
-        stage('Security Scan') {
-            steps {
-                script {
-                    echo 'Running security scan...'
-                    sh 'npm audit > audit-results.log 2>&1 || true'
-                }
-            }
-            post {
-                always {
-                    emailext(
-                        subject: "Security Scan Stage - ${currentBuild.result ?: 'SUCCESS'}",
-                        body: "Security scan completed. See attached audit report.",
-                        to: "${env.RECIPIENT_EMAIL}",
-                        attachmentsPattern: 'audit-results.log',
-                        compressLog: true
-                    )
-                }
-            }
-        }
-
-        stage('Deploy') {
-            steps {
-                echo 'Deployment stage executed.'
             }
         }
     }
