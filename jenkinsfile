@@ -1,31 +1,28 @@
 pipeline {
     agent any
+
     environment {
         RECIPIENT_EMAIL = 'radia.zayeen@gmail.com'
     }
+
     stages {
-        stage('Test') {
+        stage('Dummy') {
             steps {
-                script {
-                    echo 'Running tests...'
-                    sh 'npm test || true'
-                }
-            }
-            post {
-                always {
-                    emailext(
-                        subject: "Test Stage - ${currentBuild.result ?: 'SUCCESS'}",
-                        body: "Test stage completed successfully.",
-                        to: "${env.RECIPIENT_EMAIL}"
-                    )
-                }
+                echo 'Just a dummy step'
             }
         }
     }
 
     post {
         always {
-            echo 'Pipeline completed.'
+            emailext(
+                subject: "Build Result: ${currentBuild.result ?: 'SUCCESS'}",
+                body: "This is a test email from Jenkins pipeline.",
+                to: "${env.RECIPIENT_EMAIL}",
+                mimeType: 'text/plain',
+                replyTo: 'radia.zayeen@gmail.com'
+                // No attachments
+            )
         }
     }
 }
